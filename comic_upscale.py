@@ -10,6 +10,8 @@ import logging
 from pathlib import Path
 from typing import Union
 
+UPSCALED_SUFFIX = "(upscaled)"
+
 # Setup logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(message)s")
 logger = logging.getLogger()
@@ -57,12 +59,25 @@ def upscale_comic_file(file_path: Path, model: torch.nn.Module):
             if file.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp')):
                 images.append(Path(root) / file)
     
+    # Add upscaled versions for all images
     for img_path in images:
+        if is_upscaled(img_path) or has_upscaled(img_path):
+            logger.info(f"Skipping upscaled image: {img_path}")
+            continue
         logger.info(f"Upscaling image: {img_path}")
-        upscale_image(img_path, img_path, model)  # Replaces the original image
+        upscale_image(img_path, get_upscaled(img_path), model)
+
+    # Remove originals, rename upscaled to original
+    for img_path in images:
+        if is_upscaled(img_path):
+            continue
+        upscaled_img_path = get_upscaled(img_path)
+        img_path.unlink() # delete original
+        upscaled_img_path.rename(img_path) # rename upscaled to original
+
 
     # Step 3: Repack into a new cbz file
-    output_file = file_path.with_name(f"{file_path.stem} (upscaled).cbz")
+    output_file = get_upscaled(file_path)
     repack_archive(unpack_dir, output_file)
 
     # Step 4: Clean up unpacked directory
@@ -73,19 +88,30 @@ def upscale_comics_in_directory(directory_path: Path, model: torch.nn.Module):
     """
     Upscales all comic files in a given directory.
     """
-    files = directory_path.glob("*.{cbz,cbr}")
-    total_files = len(list(files))  # Get total number of files in the directory
+    files = list(directory_path.glob("*.cbz")) + list(directory_path.glob("*.cbr"))
+    total_files = len(files)  # Get total number of files in the directory
+    logger.info(f"Found {total_files} files")
     processed_files = 0
 
     for file_path in files:
         # Skip already upscaled files
-        if "(upscaled)" in file_path.stem:
+        if is_upscaled(file_path) or has_upscaled(file_path):
             logger.info(f"Skipping already upscaled file: {file_path}")
+            total_files -= 1
             continue
         
         processed_files += 1
         logger.info(f"Processing {processed_files}/{total_files} - {file_path}")
         upscale_comic_file(file_path, model)
+
+def is_upscaled(file_path: Path) -> bool:
+    return file_path.stem.endswith(UPSCALED_SUFFIX)
+
+def get_upscaled(file_path: Path) -> Path:
+    return file_path.with_name(f"{file_path.stem} {UPSCALED_SUFFIX}{file_path.suffix}")
+
+def has_upscaled(file_path: Path) -> bool:
+    return get_upscaled(file_path).exists()
 
 # Function to upscale the image
 def upscale_image(in_path: Path, out_path: Path, model: torch.nn.Module):
