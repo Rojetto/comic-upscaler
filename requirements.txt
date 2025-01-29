@@ -1,0 +1,44 @@
+tqdm
+wand >= 0.6.10
+fonttools
+scipy
+waitress
+bottle
+diskcache
+flake8
+psutil
+pyyaml
+onnx
+onnxconverter_common
+lpips
+# opencv-python
+packaging
+
+# https://github.com/GallagherCommaJack/dctorch
+dctorch
+
+# iw3
+timm
+numba # only for iww3 sbs training
+av >= 12.2.0, < 14.0.0
+rembg # for --remove-bg
+truststore; python_version >= '3.10'
+
+# Torch
+--extra-index-url https://download.pytorch.org/whl/cpu
+--extra-index-url https://download.pytorch.org/whl/cu124
+
+# macOS
+torch; sys_platform == "darwin"
+torchvision; sys_platform == "darwin"
+
+# Linux
+torch==2.4.1+cu124; sys_platform == "linux"
+torchvision==0.19.1+cu124; sys_platform == "linux"
+
+# Windows
+torch==2.4.1+cu124; sys_platform == "win32"
+torchvision==0.19.1+cu124; sys_platform == "win32"
+
+# Archives
+rarfile
