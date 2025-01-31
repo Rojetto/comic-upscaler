@@ -58,6 +58,8 @@ def upscale_comic_file(file_path: Path, model: torch.nn.Module):
         for file in files:
             if file.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.webp')):
                 images.append(Path(root) / file)
+
+    images.sort()
     
     # Add upscaled versions for all images
     for img_path in images:
@@ -89,6 +91,7 @@ def upscale_comics_in_directory(directory_path: Path, model: torch.nn.Module):
     Upscales all comic files in a given directory.
     """
     files = list(directory_path.glob("*.cbz")) + list(directory_path.glob("*.cbr"))
+    files.sort()
     total_files = len(files)  # Get total number of files in the directory
     logger.info(f"Found {total_files} files")
     processed_files = 0
