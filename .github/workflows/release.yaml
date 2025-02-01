@@ -1,0 +1,45 @@
+---
+name: Create Release
+
+on:
+  push:
+    tags:
+      - "v*"  # Runs when a tag starting with 'v' is pushed
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Ensures full history is available
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          previous_tag=$(git tag --sort=-creatordate | grep -v "${{ github.ref_name }}" | head -n 1)
+          if [ -z "$previous_tag" ]; then
+            previous_tag=$(git rev-list --max-parents=0 HEAD)
+          fi
+          changelog=$(git log --pretty=format:"- %h %s" $previous_tag..${{ github.ref_name }})
+          echo "changelog<<EOF" >> $GITHUB_ENV
+          echo "$changelog" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          body: "## Changes since last release:
+
+${{ env.changelog }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Windows Build
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          event-type: trigger-windows-build
+          token: ${{ secrets.GITHUB_TOKEN }}
