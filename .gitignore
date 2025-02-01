@@ -1,0 +1,7 @@
+/env
+/venv
+
+/dist
+/build
+
+.DS_Store
