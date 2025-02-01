@@ -38,8 +38,6 @@ ${{ env.changelog }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Trigger Windows Build
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          event-type: trigger-windows-build
-          token: ${{ secrets.GITHUB_TOKEN }}
+  build-windows:
+    needs: release
+    uses: ./.github/workflows/windows-build.yml
