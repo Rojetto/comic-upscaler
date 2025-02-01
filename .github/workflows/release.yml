@@ -1,43 +1,61 @@
----
-name: Create Release
+name: Create Release and Attach Windows Binary
 
 on:
   push:
     tags:
-      - "v*"  # Runs when a tag starting with 'v' is pushed
+      - "v*"
 
 jobs:
-  release:
+  create-release:
     runs-on: ubuntu-latest
-
+    outputs:
+      release_id: ${{ steps.create_release.outputs.id }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Ensures full history is available
+          fetch-depth: 0
 
       - name: Generate changelog
         id: changelog
         run: |
-          previous_tag=$(git tag --sort=-creatordate | grep -v "${{ github.ref_name }}" | head -n 1)
+          previous_tag=$(git tag --sort=-creatordate | grep -v "${GITHUB_REF_NAME}" | head -n 1)
           if [ -z "$previous_tag" ]; then
             previous_tag=$(git rev-list --max-parents=0 HEAD)
           fi
-          changelog=$(git log --pretty=format:"- %h %s" $previous_tag..${{ github.ref_name }})
+          changelog=$(git log --pretty=format:"- %h %s" $previous_tag..${GITHUB_REF_NAME})
           echo "changelog<<EOF" >> $GITHUB_ENV
           echo "$changelog" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
       - name: Create Draft Release
+        id: create_release
         uses: softprops/action-gh-release@v2
         with:
           draft: true
-          body: "## Changes since last release:
-
-${{ env.changelog }}"
+          body: "## Changes since last release:\n\n${{ env.changelog }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-windows:
-    needs: release
+    # Call the Windows build workflow after the release is created.
+    needs: create-release
     uses: ./.github/workflows/windows-build.yml
+
+  attach-windows:
+    runs-on: ubuntu-latest
+    needs: [create-release, build-windows]
+    steps:
+      - name: Download Windows binary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: comic_upscaler-windows-${{ github.ref_name }}
+          path: ./artifact
+
+      - name: Attach Windows binary to release
+        uses: softprops/action-gh-release@v2
+        with:
+          release_id: ${{ needs.create-release.outputs.release_id }}
+          files: artifact/comic_upscaler_windows_${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

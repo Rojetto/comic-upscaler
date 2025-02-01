@@ -1,4 +1,3 @@
----
 name: Build Windows Binary
 
 on:
@@ -12,7 +11,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Ensures full history is available
+          fetch-depth: 0
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v4
@@ -30,15 +29,14 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
-          venv\Scripts\pyinstaller comic_upscale.spec --distpath dist/comic_upscaler
+          venv\Scripts\pyinstaller comic_upscale.py --onefile --distpath dist/comic_upscaler
 
       - name: Create zip archive
         run: |
-          $version = (git describe --tags --abbrev=0)
-          Compress-Archive -Path dist/comic_upscaler/* -DestinationPath comic_upscaler_windows_$version.zip
+          Compress-Archive -Path dist/comic_upscaler/* -DestinationPath comic_upscaler_windows_${{ github.ref_name }}.zip
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: comic_upscaler-windows-${{ github.ref_name }}
-          path: comic_upscaler_windows_${{ github.ref_name }}.zip
+          path: dist/comic_upscaler
