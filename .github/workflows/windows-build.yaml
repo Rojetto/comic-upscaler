@@ -30,7 +30,7 @@ jobs:
 
       - name: Build with PyInstaller
         run: |
-          venv\Scripts\pyinstaller comic_upscale.py --distpath dist/comic_upscaler
+          venv\Scripts\pyinstaller comic_upscale.spec --distpath dist/comic_upscaler
 
       - name: Create zip archive
         run: |
